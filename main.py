@@ -1,11 +1,13 @@
-from app import create_app  # Import the function to create the app instance
-import os  # Import os to handle environment variables
+from app import create_app
+import os
 
-# This allows for the app to be run in different environments (development/production)
-app = create_app()  # Initialize the app using the create_app function
+# Vérifie si DATABASE_URL est bien définie pour PostgreSQL
+# En local, on peut utiliser une base SQLite si aucune variable n'est définie
+if "DATABASE_URL" not in os.environ:
+    os.environ["DATABASE_URL"] = "sqlite:///app.db"  # Option de secours pour le dev local
+
+app = create_app()  # Crée l'app Flask avec la config correcte
 
 if __name__ == "__main__":
-    # Set the port dynamically, defaulting to 5000 if the environment variable is not set
     port = int(os.environ.get("PORT", 5000))
-    # Running the Flask application with debug mode enabled
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port)

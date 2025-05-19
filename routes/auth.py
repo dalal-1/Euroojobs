@@ -154,4 +154,7 @@ def reset_password(token):
         db.session.commit()
         flash('Your password has been updated.', 'success')
         return redirect(url_for('auth.login'))
-    return render_template('auth/reset_password.html', form=form)
+    
+    # Passer token au template pour que le formulaire puisse l'utiliser dans l'action
+    return render_template('auth/reset_password.html', form=form, token=token)
+

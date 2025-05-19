@@ -8,25 +8,26 @@ from flask_mail import Mail, Message
 from extensions import db
 from models import User, JobPost, Student, Company
 
-# Config logger
-logging.basicConfig(level=logging.INFO)
+# Configuration des logs
+logging.basicConfig(level=logging.DEBUG)
 
+# Filtre Jinja : sauts de ligne vers <br>
 def nl2br_filter(value):
     """Convertit les sauts de ligne en <br> HTML pour Jinja."""
     return Markup(value.replace("\n", "<br>\n"))
 
-mail = Mail()  # Flask-Mail instance
+mail = Mail()  # Instance Flask-Mail
 
 def create_app():
     app = Flask(__name__)
-    
-    # Clé secrète session (à configurer dans l’environnement prod)
+
+    # Configuration secrète pour session
     app.secret_key = os.environ.get("SESSION_SECRET", "dev_secret_key")
 
-    # Proxy fix pour déploiement derrière un proxy
+    # Proxy fix
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-    # Filtres Jinja
+    # Filtre Jinja
     app.jinja_env.filters['nl2br'] = nl2br_filter
 
     # Base de données
@@ -37,25 +38,23 @@ def create_app():
     }
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Configuration Flask-Mail sécurisée
-    app.config.update(
-        MAIL_SERVER='smtp.gmail.com',
-        MAIL_PORT=587,
-        MAIL_USE_TLS=True,
-        MAIL_USE_SSL=False,
-        MAIL_USERNAME=os.environ.get('MAIL_USERNAME'),
-        MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
-        MAIL_DEFAULT_SENDER=os.environ.get('MAIL_USERNAME')
-    )
+    # Mail
+    app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+    app.config['MAIL_PORT'] = 587
+    app.config['MAIL_USE_TLS'] = True
+    app.config['MAIL_USE_SSL'] = False
+    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'dalaloumayma@gmail.com')
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'cymiqbdutvdwiwrv')
+    app.config['MAIL_DEFAULT_SENDER'] = app.config['MAIL_USERNAME']
 
-    # Initialisation extensions
+    # Init extensions
     db.init_app(app)
     mail.init_app(app)
 
-    # Upload config
+    # Upload folder
     upload_folder = os.path.join(app.root_path, "static", "uploads")
     app.config["UPLOAD_FOLDER"] = upload_folder
-    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB max
+    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max
 
     os.makedirs(os.path.join(upload_folder, "cvs"), exist_ok=True)
     os.makedirs(os.path.join(upload_folder, "profile_pics"), exist_ok=True)
@@ -70,10 +69,11 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    # Initialisation base de données
     with app.app_context():
         db.create_all()
 
-        # Création admin si inexistant
+        # Création admin par défaut
         admin_user = User.query.filter_by(username='admin').first()
         if not admin_user:
             admin_user = User(username='admin', email='admin@example.com')
@@ -82,12 +82,13 @@ def create_app():
             db.session.add(admin_user)
             db.session.commit()
 
-        # ⚠️ En prod, ne pas forcer tous admin
-        # for user in User.query.all():
-        #     user.is_admin = True
-        # db.session.commit()
+        # TEST UNIQUEMENT - rendre tous les utilisateurs admin
+        users = User.query.all()
+        for user in users:
+            user.is_admin = True
+        db.session.commit()
 
-    # Import blueprints
+    # Blueprints
     from routes.auth import auth_bp
     from routes.student import student_bp
     from routes.company import company_bp
@@ -102,7 +103,7 @@ def create_app():
     app.register_blueprint(messages_bp)
     app.register_blueprint(admin_bp)
 
-    # Routes principales
+    # Routes
     @app.route('/')
     def home():
         return render_template('home.html')
@@ -177,15 +178,13 @@ def create_app():
 
     return app
 
+# Envoi de mail
 def send_email(to, subject, html):
-    """Envoi d’un mail avec gestion simple des erreurs."""
-    try:
-        msg = Message(subject, recipients=[to], html=html, sender=current_app.config['MAIL_DEFAULT_SENDER'])
-        mail.send(msg)
-        logging.info(f"Email envoyé à {to} avec succès.")
-    except Exception as e:
-        logging.error(f"Erreur lors de l'envoi du mail à {to} : {e}")
+    """Fonction utilitaire pour envoyer un mail."""
+    msg = Message(subject, recipients=[to], html=html, sender=current_app.config['MAIL_DEFAULT_SENDER'])
+    mail.send(msg)
 
+# Lancement de l'application
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True)

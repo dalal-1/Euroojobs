@@ -29,7 +29,9 @@ def dashboard():
         'total_jobs': JobPost.query.count(),
         'total_applications': Application.query.count(),
         'total_messages': Message.query.count(),
+        # Ici on récupère les 5 utilisateurs récents (c'est souvent utile de garder cette limitation)
         'recent_users': User.query.order_by(desc(User.created_at)).limit(5).all(),
+        # Pour les jobs, on enlève la limite 5, mais ici dans le dashboard on peut garder limit 5 pour l’aperçu
         'recent_jobs': JobPost.query.order_by(desc(JobPost.created_at)).limit(5).all(),
         'application_status_counts': db.session.query(
             Application.status, func.count(Application.id)

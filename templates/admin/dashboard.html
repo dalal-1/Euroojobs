@@ -2,10 +2,10 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Admin Dashboard</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet" />
     <style>
         /* Styles similaires à ceux que tu avais déjà */
         html, body {
@@ -155,25 +155,23 @@
             font-weight: bold;
         }
         #statistics {
-    display: flex;
-    justify-content: space-between;
-    gap: 20px; /* Espace entre les graphiques */
-}
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
 
-.statistics-card {
-    background-color: #222831;
-    border-radius: 12px;
-    padding: 15px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
-    width: 90%; /* Ajuste pour les faire tenir côte à côte */
-}
+        .statistics-card {
+            background-color: #222831;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+            width: 90%;
+        }
 
-.statistics-card canvas {
-    
-    height: 450px;
-    margin: 0 auto;
-}
-
+        .statistics-card canvas {
+            height: 450px;
+            margin: 0 auto;
+        }
     </style>
 </head>
 
@@ -192,9 +190,7 @@
                 <a href="#manage-jobs" class="list-group-item list-group-item-action">
                     <i class="fas fa-briefcase"></i> Manage Jobs
                 </a>
-                <a href="#activity" class="list-group-item list-group-item-action">
-                    <i class="fas fa-history"></i> Recent Activity
-                </a>
+                <!-- Activity link can remain or be removed if you want -->
                 <a href="#statistics" class="list-group-item list-group-item-action">
                     <i class="fas fa-chart-pie"></i> Statistics
                 </a>
@@ -205,7 +201,8 @@
             <nav class="navbar navbar-expand-lg navbar-dark">
                 <a class="navbar-brand" href="#">Job Board Admin</a>
                 <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
-                  <i class="fas fa-sign-out-alt"></i> Logout
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
             </nav>
 
             <div class="container mt-4">
@@ -283,16 +280,6 @@
                     </table>
                 </div>
 
-                <div id="activity" class="mt-5 recent-activity">
-                    <h3>Recent Activity</h3>
-                    <ul>
-                        {% for activity in stats.activities %}
-                        <li>
-                            <strong>{{ activity.username }}</strong> {{ activity.action }} - <small>{{ activity.timestamp }}</small>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
             </div>
         </div>
     </div>

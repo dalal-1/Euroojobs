@@ -237,7 +237,8 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for user in stats.recent_users %}
+                            {% for user in stats.all_users %}
+
                             <tr>
                                 <td>{{ user.username }}</td>
                                 <td>{{ user.email }}</td>

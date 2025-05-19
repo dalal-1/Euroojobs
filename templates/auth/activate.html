@@ -2,102 +2,105 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Confirm Your Email</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Confirm Your Email - EuroJobs</title>
 <style>
     body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #f1f3f6;
+        background-color: #f9fafb;
         margin: 0;
         padding: 0;
-        color: #333;
+        color: #222;
     }
     .email-wrapper {
         max-width: 600px;
         margin: 40px auto;
-        background-color: #ffffff;
-        border-radius: 10px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+        border: 1px solid #ddd;
         overflow: hidden;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-        border: 1px solid #e0e0e0;
     }
     .email-header {
-        background-color: #0052cc;
-        color: white;
-        padding: 25px 30px;
-        font-size: 20px;
-        font-weight: bold;
+        background-color: #004aad;
+        color: #fff;
+        padding: 24px 30px;
+        font-size: 22px;
+        font-weight: 600;
         text-align: center;
     }
     .email-body {
-        padding: 40px 30px;
+        padding: 32px 30px;
     }
     .email-body h2 {
         margin-top: 0;
-        color: #2c3e50;
+        font-weight: 600;
+        color: #1a1a1a;
+        font-size: 24px;
     }
     .email-body p {
         font-size: 16px;
-        line-height: 1.6;
+        line-height: 1.5;
+        margin-bottom: 20px;
     }
     .button {
         display: inline-block;
-        margin-top: 25px;
-        padding: 15px 28px;
-        background-color: #007bff;
-        color: #fff !important;
+        padding: 14px 26px;
+        background-color: #0066ff;
+        color: #ffffff !important;
         text-decoration: none;
-        font-weight: bold;
-        border-radius: 6px;
-        box-shadow: 0 4px 10px rgba(0,123,255,0.3);
-        transition: background-color 0.3s ease;
+        font-weight: 600;
+        border-radius: 5px;
+        box-shadow: 0 3px 8px rgba(0,102,255,0.3);
+        transition: background-color 0.25s ease;
     }
     .button:hover {
-        background-color: #0056b3;
+        background-color: #004aad;
     }
     .fallback-link {
         font-size: 14px;
         margin-top: 30px;
         word-break: break-word;
+        color: #555;
     }
     .email-footer {
-        padding: 25px 30px;
-        text-align: center;
+        background-color: #f7f8fa;
+        padding: 20px 30px;
         font-size: 13px;
-        color: #999;
-        border-top: 1px solid #e0e0e0;
-        background-color: #fafafa;
+        color: #666;
+        text-align: center;
+        border-top: 1px solid #ddd;
     }
     .email-footer a {
-        color: #666;
+        color: #444;
         text-decoration: none;
     }
 </style>
 </head>
 <body>
-    <div class="email-wrapper">
-        <div class="email-header">
-            EuroJobs – Confirm Your Email
+    <div class="email-wrapper" role="main" aria-label="Email confirmation message">
+        <div class="email-header" role="banner">
+            EuroJobs
         </div>
         <div class="email-body">
-            <h2>Welcome to EuroJobs!</h2>
+            <h2>Hello,</h2>
             <p>
-                We're excited to have you onboard. To get started, please confirm your email address by clicking the button below.
+                Thank you for registering with EuroJobs. Please confirm your email address by clicking the button below:
             </p>
             <p>
-                <a href="{{ confirm_url }}" class="button" target="_blank" rel="noopener noreferrer">Confirm My Email</a>
+                <a href="{{ confirm_url }}" class="button" target="_blank" rel="noopener noreferrer nofollow">Confirm Email</a>
             </p>
             <p class="fallback-link">
-                If the button doesn't work, copy and paste this link into your browser:<br>
+                If the button above doesn't work, please copy and paste this link into your browser:<br />
                 <a href="{{ confirm_url }}">{{ confirm_url }}</a>
             </p>
             <p>
-                If you didn’t sign up for EuroJobs, you can safely ignore this email.
+                If you did not create an account, you can ignore this message.
             </p>
         </div>
-        <div class="email-footer">
-            © {{ current_year }} EuroJobs. All rights reserved.<br>
-            Need help? Contact us at <a href="mailto:dalaloumayma@gmail.com">dalaloumayma@gmail.com</a>
+        <div class="email-footer" role="contentinfo">
+            &copy; {{ current_year }} EuroJobs. All rights reserved.<br />
+            Contact us: <a href="mailto:dalaloumayma@gmail.com">dalaloumayma@gmail.com</a>
         </div>
     </div>
 </body>

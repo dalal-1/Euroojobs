@@ -1,4 +1,5 @@
 import os
+import logging
 from flask import Flask, render_template, redirect, url_for, flash, current_app
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import LoginManager, current_user
@@ -7,29 +8,28 @@ from flask_mail import Mail, Message
 from extensions import db
 from models import User, JobPost, Student, Company
 
-import logging
-logging.basicConfig(level=logging.DEBUG)
+# Config logger
+logging.basicConfig(level=logging.INFO)
 
 def nl2br_filter(value):
     """Convertit les sauts de ligne en <br> HTML pour Jinja."""
     return Markup(value.replace("\n", "<br>\n"))
 
-mail = Mail()  # Instance Flask-Mail
+mail = Mail()  # Flask-Mail instance
 
 def create_app():
     app = Flask(__name__)
     
-    # Configuration secrète pour session
+    # Clé secrète session (à configurer dans l’environnement prod)
     app.secret_key = os.environ.get("SESSION_SECRET", "dev_secret_key")
 
-    # Proxy fix (utile si déployé derrière un proxy)
+    # Proxy fix pour déploiement derrière un proxy
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-    # Filtre Jinja pour convertir les retours à la ligne
+    # Filtres Jinja
     app.jinja_env.filters['nl2br'] = nl2br_filter
 
-    # Configuration base de données
-    # Priorité à la variable d'environnement DATABASE_URL (ex: PostgreSQL), sinon SQLite local
+    # Base de données
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///app.db")
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_recycle": 300,
@@ -37,29 +37,30 @@ def create_app():
     }
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Configuration Flask-Mail (attention à la sécurité des identifiants)
-    app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-    app.config['MAIL_PORT'] = 587
-    app.config['MAIL_USE_TLS'] = True
-    app.config['MAIL_USE_SSL'] = False
-    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'dalaloumayma@gmail.com')
-    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'cymiqbdutvdwiwrv')
-    app.config['MAIL_DEFAULT_SENDER'] = app.config['MAIL_USERNAME']
+    # Configuration Flask-Mail sécurisée
+    app.config.update(
+        MAIL_SERVER='smtp.gmail.com',
+        MAIL_PORT=587,
+        MAIL_USE_TLS=True,
+        MAIL_USE_SSL=False,
+        MAIL_USERNAME=os.environ.get('MAIL_USERNAME'),
+        MAIL_PASSWORD=os.environ.get('MAIL_PASSWORD'),
+        MAIL_DEFAULT_SENDER=os.environ.get('MAIL_USERNAME')
+    )
 
     # Initialisation extensions
     db.init_app(app)
     mail.init_app(app)
 
-    # Configuration dossier upload
+    # Upload config
     upload_folder = os.path.join(app.root_path, "static", "uploads")
     app.config["UPLOAD_FOLDER"] = upload_folder
-    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max
+    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB max
 
-    # Création des dossiers si non existants
     os.makedirs(os.path.join(upload_folder, "cvs"), exist_ok=True)
     os.makedirs(os.path.join(upload_folder, "profile_pics"), exist_ok=True)
 
-    # Gestion des sessions utilisateurs
+    # Login manager
     login_manager = LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
@@ -72,7 +73,7 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-        # Créer admin par défaut s’il n’existe pas
+        # Création admin si inexistant
         admin_user = User.query.filter_by(username='admin').first()
         if not admin_user:
             admin_user = User(username='admin', email='admin@example.com')
@@ -81,13 +82,12 @@ def create_app():
             db.session.add(admin_user)
             db.session.commit()
 
-        # ⚠️ POUR TEST : Forcer tous les utilisateurs à être admin (à commenter en prod)
-        users = User.query.all()
-        for user in users:
-            user.is_admin = True
-        db.session.commit()
+        # ⚠️ En prod, ne pas forcer tous admin
+        # for user in User.query.all():
+        #     user.is_admin = True
+        # db.session.commit()
 
-    # Enregistrement des blueprints
+    # Import blueprints
     from routes.auth import auth_bp
     from routes.student import student_bp
     from routes.company import company_bp
@@ -177,12 +177,14 @@ def create_app():
 
     return app
 
-
 def send_email(to, subject, html):
-    """Fonction utilitaire pour envoyer un mail."""
-    msg = Message(subject, recipients=[to], html=html, sender=current_app.config['MAIL_DEFAULT_SENDER'])
-    mail.send(msg)
-
+    """Envoi d’un mail avec gestion simple des erreurs."""
+    try:
+        msg = Message(subject, recipients=[to], html=html, sender=current_app.config['MAIL_DEFAULT_SENDER'])
+        mail.send(msg)
+        logging.info(f"Email envoyé à {to} avec succès.")
+    except Exception as e:
+        logging.error(f"Erreur lors de l'envoi du mail à {to} : {e}")
 
 if __name__ == "__main__":
     app = create_app()

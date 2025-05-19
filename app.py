@@ -11,19 +11,25 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 def nl2br_filter(value):
+    """Convertit les sauts de ligne en <br> HTML pour Jinja."""
     return Markup(value.replace("\n", "<br>\n"))
 
 mail = Mail()  # Instance Flask-Mail
 
 def create_app():
     app = Flask(__name__)
+    
+    # Configuration secrète pour session
     app.secret_key = os.environ.get("SESSION_SECRET", "dev_secret_key")
+
+    # Proxy fix (utile si déployé derrière un proxy)
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-    # Jinja filter pour transformer \n en <br>
+    # Filtre Jinja pour convertir les retours à la ligne
     app.jinja_env.filters['nl2br'] = nl2br_filter
 
     # Configuration base de données
+    # Priorité à la variable d'environnement DATABASE_URL (ex: PostgreSQL), sinon SQLite local
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///app.db")
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_recycle": 300,
@@ -31,27 +37,29 @@ def create_app():
     }
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Configuration Flask-Mail
+    # Configuration Flask-Mail (attention à la sécurité des identifiants)
     app.config['MAIL_SERVER'] = 'smtp.gmail.com'
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
     app.config['MAIL_USE_SSL'] = False
-    app.config['MAIL_USERNAME'] = 'dalaloumayma@gmail.com'
-    app.config['MAIL_PASSWORD'] = 'cymiqbdutvdwiwrv'  # En prod, mieux vaut mettre en variable d’environnement
-    app.config['MAIL_DEFAULT_SENDER'] = 'dalaloumayma@gmail.com'
+    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'dalaloumayma@gmail.com')
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'cymiqbdutvdwiwrv')
+    app.config['MAIL_DEFAULT_SENDER'] = app.config['MAIL_USERNAME']
 
+    # Initialisation extensions
     db.init_app(app)
     mail.init_app(app)
 
-    # Upload folder
+    # Configuration dossier upload
     upload_folder = os.path.join(app.root_path, "static", "uploads")
     app.config["UPLOAD_FOLDER"] = upload_folder
-    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB
+    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max
 
+    # Création des dossiers si non existants
     os.makedirs(os.path.join(upload_folder, "cvs"), exist_ok=True)
     os.makedirs(os.path.join(upload_folder, "profile_pics"), exist_ok=True)
 
-    # Login manager
+    # Gestion des sessions utilisateurs
     login_manager = LoginManager()
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
@@ -64,7 +72,7 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-        # Crée l’admin 'admin' si n’existe pas
+        # Créer admin par défaut s’il n’existe pas
         admin_user = User.query.filter_by(username='admin').first()
         if not admin_user:
             admin_user = User(username='admin', email='admin@example.com')
@@ -73,14 +81,13 @@ def create_app():
             db.session.add(admin_user)
             db.session.commit()
 
-        # ⚠️ POUR TEST : Forcer tous les utilisateurs à être admin
+        # ⚠️ POUR TEST : Forcer tous les utilisateurs à être admin (à commenter en prod)
         users = User.query.all()
         for user in users:
             user.is_admin = True
         db.session.commit()
-        # => Une fois testé, commenter ce bloc sinon tous les users sont admins !
 
-    # Import et enregistrement des blueprints
+    # Enregistrement des blueprints
     from routes.auth import auth_bp
     from routes.student import student_bp
     from routes.company import company_bp
@@ -95,8 +102,7 @@ def create_app():
     app.register_blueprint(messages_bp)
     app.register_blueprint(admin_bp)
 
-    # Routes exemples
-
+    # Routes principales
     @app.route('/')
     def home():
         return render_template('home.html')
@@ -110,7 +116,6 @@ def create_app():
         db.session.rollback()
         return render_template('500.html'), 500
 
-    # Injection du type d’utilisateur dans tous les templates
     @app.context_processor
     def inject_user_type():
         if current_user.is_authenticated:
@@ -120,7 +125,6 @@ def create_app():
                 return {"user_type": "company"}
         return {"user_type": None}
 
-    # Exemple : tableau de bord admin
     @app.route('/admin')
     def admin_dashboard():
         stats = {
@@ -140,13 +144,11 @@ def create_app():
         }
         return render_template('admin/dashboard.html', stats=stats)
 
-    # Route exemple affichage détail job
     @app.route('/job/<int:job_id>', methods=['GET'])
     def view_job_post(job_id):
         job = JobPost.query.get_or_404(job_id)
         return render_template('view_job_post.html', job=job)
 
-    # Suppression d'un job (POST)
     @app.route('/admin/job/delete/<int:job_id>', methods=['POST'])
     def delete_job(job_id):
         job = JobPost.query.get_or_404(job_id)
@@ -155,7 +157,6 @@ def create_app():
         flash("Job post deleted successfully!", "success")
         return redirect(url_for('admin_dashboard'))
 
-    # Suppression d'un user (POST)
     @app.route('/admin/user/delete/<int:user_id>', methods=['POST'])
     def delete_user(user_id):
         user = User.query.get_or_404(user_id)
@@ -164,13 +165,11 @@ def create_app():
         flash("User deleted successfully!", "success")
         return redirect(url_for('admin_dashboard'))
 
-    # Profil étudiant (exemple)
     @app.route('/student/<int:student_id>')
     def view_student_profile(student_id):
         student = Student.query.get_or_404(student_id)
         return render_template('student_profile.html', student=student)
 
-    # Afficher CV étudiant (redirection vers le fichier statique)
     @app.route('/student/cv/<int:student_id>')
     def view_student_cv(student_id):
         student = Student.query.get_or_404(student_id)
@@ -179,8 +178,8 @@ def create_app():
     return app
 
 
-# Fonction utilitaire d’envoi d’email
 def send_email(to, subject, html):
+    """Fonction utilitaire pour envoyer un mail."""
     msg = Message(subject, recipients=[to], html=html, sender=current_app.config['MAIL_DEFAULT_SENDER'])
     mail.send(msg)
 

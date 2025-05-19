@@ -1,13 +1,13 @@
 from app import create_app
 import os
 
-# Vérifie si DATABASE_URL est bien définie pour PostgreSQL
-# En local, on peut utiliser une base SQLite si aucune variable n'est définie
+# Définit DATABASE_URL en local si elle n'existe pas
 if "DATABASE_URL" not in os.environ:
-    os.environ["DATABASE_URL"] = "sqlite:///app.db"  # Option de secours pour le dev local
+    os.environ["DATABASE_URL"] = "sqlite:///app.db"
 
-app = create_app()  # Crée l'app Flask avec la config correcte
+app = create_app()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    debug_mode = os.environ.get("FLASK_DEBUG", "1") == "1"  # active debug si FLASK_DEBUG=1 ou pas défini
+    app.run(host="0.0.0.0", port=port, debug=debug_mode)

@@ -2,6 +2,8 @@ from extensions import db  # Absolute import instead of relative import
 from flask_login import UserMixin
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from itsdangerous import URLSafeTimedSerializer
+from flask import current_app
 
 class Base(db.Model):
     __abstract__ = True  # No table created for this class
@@ -34,6 +36,20 @@ class User(UserMixin, Base):
     
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+    def get_reset_token(self, expires_sec=1800):
+        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+        return s.dumps({'user_id': self.id})
+    
+    @staticmethod
+    def verify_reset_token(token, expires_sec=1800):
+        s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+        try:
+            data = s.loads(token, max_age=expires_sec)
+            user_id = data.get('user_id')
+        except Exception:
+            return None
+        return User.query.get(user_id)
     
     def __repr__(self):
         return f'<User {self.username}>'

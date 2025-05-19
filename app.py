@@ -1,8 +1,8 @@
 import os
 import logging
-from flask import Flask, render_template, redirect, url_for, flash, current_app
+from flask import Flask, render_template, redirect, url_for, flash, current_app, abort
 from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_login import LoginManager, current_user
+from flask_login import LoginManager, current_user, login_required
 from markupsafe import Markup
 from flask_mail import Mail, Message
 from extensions import db
@@ -13,49 +13,36 @@ logging.basicConfig(level=logging.DEBUG)
 
 # Filtre Jinja : sauts de ligne vers <br>
 def nl2br_filter(value):
-    """Convertit les sauts de ligne en <br> HTML pour Jinja."""
     return Markup(value.replace("\n", "<br>\n"))
 
-mail = Mail()  # Instance Flask-Mail
+mail = Mail()
 
 def create_app():
     app = Flask(__name__)
-
-    # Configuration secrète pour session
     app.secret_key = os.environ.get("SESSION_SECRET", "dev_secret_key")
-
-    # Proxy fix
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-
-    # Filtre Jinja
     app.jinja_env.filters['nl2br'] = nl2br_filter
 
-    # Base de données
+    # Config base de données
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///app.db")
-    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-        "pool_recycle": 300,
-        "pool_pre_ping": True,
-    }
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_recycle": 300, "pool_pre_ping": True}
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Mail
+    # Config mail
     app.config['MAIL_SERVER'] = 'smtp.gmail.com'
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
-    app.config['MAIL_USE_SSL'] = False
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'dalaloumayma@gmail.com')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'cymiqbdutvdwiwrv')
-    app.config['MAIL_DEFAULT_SENDER'] = app.config['MAIL_USERNAME']
+    app.config['MAIL_DEFAULT_SENDER'] = (app.config['MAIL_USERNAME'], app.config['MAIL_USERNAME'])
 
-    # Init extensions
     db.init_app(app)
     mail.init_app(app)
 
-    # Upload folder
+    # Fichiers upload
     upload_folder = os.path.join(app.root_path, "static", "uploads")
     app.config["UPLOAD_FOLDER"] = upload_folder
-    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max
-
+    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB
     os.makedirs(os.path.join(upload_folder, "cvs"), exist_ok=True)
     os.makedirs(os.path.join(upload_folder, "profile_pics"), exist_ok=True)
 
@@ -69,11 +56,9 @@ def create_app():
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # Initialisation base de données
+    # Init DB + admin user unique
     with app.app_context():
         db.create_all()
-
-        # Création admin par défaut
         admin_user = User.query.filter_by(username='admin').first()
         if not admin_user:
             admin_user = User(username='admin', email='admin@example.com')
@@ -81,12 +66,6 @@ def create_app():
             admin_user.is_admin = True
             db.session.add(admin_user)
             db.session.commit()
-
-        # TEST UNIQUEMENT - rendre tous les utilisateurs admin
-        users = User.query.all()
-        for user in users:
-            user.is_admin = True
-        db.session.commit()
 
     # Blueprints
     from routes.auth import auth_bp
@@ -103,7 +82,6 @@ def create_app():
     app.register_blueprint(messages_bp)
     app.register_blueprint(admin_bp)
 
-    # Routes
     @app.route('/')
     def home():
         return render_template('home.html')
@@ -127,7 +105,10 @@ def create_app():
         return {"user_type": None}
 
     @app.route('/admin')
+    @login_required
     def admin_dashboard():
+        if not current_user.is_admin:
+            abort(403)
         stats = {
             'total_users': User.query.count(),
             'total_students': Student.query.count(),
@@ -151,7 +132,10 @@ def create_app():
         return render_template('view_job_post.html', job=job)
 
     @app.route('/admin/job/delete/<int:job_id>', methods=['POST'])
+    @login_required
     def delete_job(job_id):
+        if not current_user.is_admin:
+            abort(403)
         job = JobPost.query.get_or_404(job_id)
         db.session.delete(job)
         db.session.commit()
@@ -159,7 +143,10 @@ def create_app():
         return redirect(url_for('admin_dashboard'))
 
     @app.route('/admin/user/delete/<int:user_id>', methods=['POST'])
+    @login_required
     def delete_user(user_id):
+        if not current_user.is_admin:
+            abort(403)
         user = User.query.get_or_404(user_id)
         db.session.delete(user)
         db.session.commit()
@@ -178,13 +165,16 @@ def create_app():
 
     return app
 
-# Envoi de mail
+# Envoi d’e-mail : version améliorée pour éviter les spams
 def send_email(to, subject, html):
-    """Fonction utilitaire pour envoyer un mail."""
-    msg = Message(subject, recipients=[to], html=html, sender=current_app.config['MAIL_DEFAULT_SENDER'])
+    msg = Message(subject,
+                  recipients=[to],
+                  html=html,
+                  sender=current_app.config['MAIL_DEFAULT_SENDER'],
+                  reply_to=current_app.config['MAIL_USERNAME'])
+    msg.body = "This is an HTML email. Please view in an HTML-compatible client."
     mail.send(msg)
 
-# Lancement de l'application
 if __name__ == "__main__":
     app = create_app()
     app.run(debug=True)

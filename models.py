@@ -4,7 +4,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 class Base(db.Model):
-    __abstract__ = True  # This ensures no table will be created for Base directly
+    __abstract__ = True  # No table created for this class
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -16,13 +16,13 @@ class User(UserMixin, Base):
     is_active = db.Column(db.Boolean, default=True)
     is_admin = db.Column(db.Boolean, default=False)
     
-    # Champs ajoutés pour confirmation email et reset mot de passe
+    # For email confirmation and password reset
     is_confirmed = db.Column(db.Boolean, default=False)
     confirmed_on = db.Column(db.DateTime, nullable=True)
     reset_token = db.Column(db.String(100), nullable=True)
     reset_token_expiration = db.Column(db.DateTime, nullable=True)
 
-    # Relations
+    # Relationships
     student = db.relationship('Student', backref='user', uselist=False, cascade="all, delete-orphan")
     company = db.relationship('Company', backref='user', uselist=False, cascade="all, delete-orphan")
     notifications = db.relationship('Notification', backref='user', lazy='dynamic', cascade="all, delete-orphan")
@@ -60,7 +60,7 @@ class Skill(Base):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
     name = db.Column(db.String(64), nullable=False)
-    level = db.Column(db.Integer, default=1)  # Skill level from 1-5
+    level = db.Column(db.Integer, default=1)  # Skill level from 1 to 5
     
     def __repr__(self):
         return f'<Skill {self.name}>'
@@ -143,7 +143,7 @@ class Conversation(Base):
     def __repr__(self):
         return f'<Conversation {self.id}>'
 
-# Fonction utilitaire pour suppression sécurisée par admin
+# Utility function for secure delete by admin
 def secure_delete(model, obj_id, admin_user):
     if not admin_user.is_admin:
         raise PermissionError("You must be an admin to delete this object.")

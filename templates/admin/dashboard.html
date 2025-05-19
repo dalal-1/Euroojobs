@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Admin - Rapport Mensuel</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <style>
+    /* Reset */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #e0e0e0;
+      line-height: 1.5;
+    }
+
+    a,
+    button {
+      cursor: pointer;
+      outline-offset: 2px;
+    }
+
+    button {
+      border: none;
+      background-color: #00adb5;
+      color: #121212;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover,
+    button:focus {
+      background-color: #028a92;
+      color: #fff;
+      outline: 2px solid #028a92;
+      outline-offset: 3px;
+    }
+
+    /* Layout */
+    #wrapper {
+      display: flex;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Sidebar */
+    #sidebar-wrapper {
+      background-color: #222;
+      width: 250px;
+      flex-shrink: 0;
+      transition: width 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    #sidebar-wrapper.collapsed {
+      width: 60px;
+    }
+
+    .sidebar-heading {
+      font-size: 1.5rem;
+      font-weight: 700;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #444;
+      color: #00adb5;
+    }
+
+    #sidebar-wrapper ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+
+    #sidebar-wrapper li {
+      display: flex;
+      align-items: center;
+      padding: 0.9rem 1.25rem;
+      border-bottom: 1px solid #333;
+      font-size: 1rem;
+      color: #bbb;
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    #sidebar-wrapper li:hover,
+    #sidebar-wrapper li:focus {
+      background-color: #00adb5;
+      color: #121212;
+      outline: none;
+    }
+
+    #sidebar-wrapper li i {
+      margin-right: 0.75rem;
+      min-width: 20px;
+      text-align: center;
+      font-size: 1.2rem;
+    }
+
+    /* Main content */
+    #page-content-wrapper {
+      flex-grow: 1;
+      background-color: #181818;
+      padding: 1.5rem 2rem;
+      transition: filter 0.3s ease;
+      overflow-y: auto;
+      min-height: 100vh;
+    }
+
+    #page-content-wrapper.shifted {
+      filter: brightness(0.9);
+      pointer-events: none;
+    }
+
+    nav.navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      color: #00adb5;
+    }
+
+    .navbar-brand {
+      font-weight: 700;
+      font-size: 1.3rem;
+    }
+
+    .hamburger {
+      font-size: 1.8rem;
+      color: #00adb5;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+    }
+
+    .logout-link {
+      background: none;
+      color: #00adb5;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .logout-link:hover,
+    .logout-link:focus {
+      color: #028a92;
+      outline: none;
+    }
+
+    h1,
+    h3,
+    h4 {
+      color: #00adb5;
+      margin-top: 0;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+      background-color: #222;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    thead {
+      background-color: #00adb5;
+      color: #121212;
+    }
+
+    th,
+    td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #333;
+    }
+
+    tbody tr:hover {
+      background-color: #333;
+    }
+
+    .btn-info {
+      background-color: #028a92;
+      color: #fff;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.9rem;
+      border-radius: 4px;
+      margin-right: 0.4rem;
+    }
+
+    .btn-info:hover,
+    .btn-info:focus {
+      background-color: #01666a;
+      outline: none;
+    }
+
+    .btn-danger {
+      background-color: #d32f2f;
+      color: #fff;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.9rem;
+      border-radius: 4px;
+    }
+
+    .btn-danger:hover,
+    .btn-danger:focus {
+      background-color: #a82828;
+      outline: none;
+    }
+
+    /* Export PDF button */
+    .btn-export {
+      background-color: #00adb5;
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1rem;
+    }
+
+    .btn-export:hover,
+    .btn-export:focus {
+      background-color: #028a92;
+      outline: none;
+    }
+
+    /* Recent Activity */
+    .recent-activity ul {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+    }
+
+    .recent-activity li {
+      margin-bottom: 0.6rem;
+      font-size: 1rem;
+    }
+
+    .recent-activity strong {
+      color: #00adb5;
+    }
+
+    .recent-activity small {
+      color: #888;
+      font-style: italic;
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #666;
+      user-select: none;
+      padding-bottom: 1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      #sidebar-wrapper {
+        position: fixed;
+        height: 100%;
+        z-index: 1000;
+        left: -250px;
+        top: 0;
+        transition: left 0.3s ease;
+        width: 250px;
+      }
+
+      #sidebar-wrapper.collapsed {
+        left: 0;
+      }
+
+      #page-content-wrapper.shifted {
+        pointer-events: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrapper">
+    <aside id="sidebar-wrapper" class="collapsed" aria-label="Navigation principale">
+      <div class="sidebar-heading" tabindex="0">Admin Panel</div>
+      <ul class="list-group" role="menu" aria-label="Menu principal">
+        <li class="list-group-item" tabindex="0" role="menuitem"><i class="fas fa-tachometer-alt"></i> Tableau de bord</li>
+        <li class="list-group-item" tabindex="0" role="menuitem"><i class="fas fa-file-alt"></i> Rapports</li>
+        <li class="list-group-item" tabindex="0" role="menuitem"><i class="fas fa-chart-bar"></i> Statistiques</li>
+        <li class="list-group-item" tabindex="0" role="menuitem"><i class="fas fa-users"></i> Utilisateurs</li>
+        <li class="list-group-item" tabindex="0" role="menuitem"><i class="fas fa-cogs"></i> Paramètres</li>
+      </ul>
+    </aside>
+
+    <main id="page-content-wrapper" class="collapsed" tabindex="0" aria-live="polite">
+      <nav class="navbar" aria-label="Navigation principale">
+        <div class="hamburger" role="button" aria-pressed="true" aria-label="Basculer la navigation" tabindex="0">
+          <i class="fas fa-bars" aria-hidden="true"></i>
+        </div>
+        <div class="navbar-brand" tabindex="0">Tableau de bord administrateur</div>
+        <button class="logout-link" aria-label="Se déconnecter" title="Se déconnecter">
+          <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </button>
+      </nav>
+
+      <h1>Rapport Mensuel</h1>
+
+      <section id="statistics" aria-label="Statistiques et graphiques">
+        <div class="statistics-card" aria-live="polite">
+          <h4>Graphique de statistiques</h4>
+          <canvas id="statsChart" aria-label="Graphique statistiques"></canvas>
+        </div>
+        <div class="statistics-card" aria-live="polite">
+          <h4>Graphique des ventes</h4>
+          <canvas id="salesChart" aria-label="Graphique ventes"></canvas>
+        </div>
+      </section>
+
+      <section aria-label="Résumé des utilisateurs">
+        <h3>Résumé des utilisateurs</h3>
+        <table aria-describedby="userSummaryCaption" role="grid">
+          <caption id="userSummaryCaption" class="sr-only">Résumé des utilisateurs</caption>
+          <thead>
+            <tr>
+              <th scope="col">Nom</th>
+              <th scope="col">Adresse mail</th>
+              <th scope="col">Téléphone</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Doe</td>
+              <td>doe@example.com</td>
+              <td>+212 123456789</td>
+              <td>
+                <button class="btn-info" aria-label="Voir les détails de Doe">Détails</button>
+                <form action="#" method="POST" onsubmit="return confirm('Voulez-vous vraiment supprimer cet utilisateur ?');" style="display:inline;">
+                  <button type="submit" class="btn-danger" aria-label="Supprimer Doe">Supprimer</button>
+                </form>
+              </td>
+            </tr>
+            <tr>
+              <td>Oumayma</td>
+              <td>oum@domain.com</td>
+              <td>+212 987654321</td>
+              <td>
+                <button class="btn-info" aria-label="Voir les détails de Oumayma">Détails</button>
+                <form action="#" method="POST" onsubmit="return confirm('Voulez-vous vraiment supprimer cet utilisateur ?');" style="display:inline;">
+                  <button type="submit" class="btn-danger" aria-label="Supprimer Oumayma">Supprimer</button>
+                </form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+  </section>
+
+  <section aria-label="Exporter les données">
+    <button class="btn-export" id="exportPDF" aria-label="Exporter le rapport en PDF">
+      <i class="fas fa-file-pdf"></i> Export PDF
+    </button>
+  </section>
+
+  <section aria-label="Activité récente" class="recent-activity">
+    <h3>Activité récente</h3>
+    <ul>
+      <li><strong>Utilisateur John Doe</strong> a modifié le rapport le 2024-05-10.</li>
+      <li><strong>Utilisateur Oumayma</strong> a ajouté un nouveau graphique le 2024-05-12.</li>
+      <li><strong>Administrateur</strong> a exporté le rapport le 2024-05-15.</li>
+    </ul>
+  </section>
+
+  <footer>
+    © 2024 Dashboard Admin - Tous droits réservés
+  </footer>
+</main>
